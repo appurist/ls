@@ -80,13 +80,20 @@ Examples:
   ls /path     List files in specified directory`);
 }
 
-function formatPermissions(mode) {
+function formatPermissions(mode, filename = '') {
   const perms = ['---', '--x', '-w-', '-wx', 'r--', 'r-x', 'rw-', 'rwx'];
+  
+  // On Windows, add execute permission for executable extensions
+  let adjustedMode = mode;
+  if (isExecutableByExtension(filename) && !(mode & 0o111)) {
+    adjustedMode = mode | 0o111; // Add execute permission for owner, group, and others
+  }
+  
   return [
-    (mode & 0o40000) ? 'd' : '-',
-    perms[(mode & 0o700) >> 6],
-    perms[(mode & 0o070) >> 3],
-    perms[mode & 0o007]
+    (adjustedMode & 0o40000) ? 'd' : '-',
+    perms[(adjustedMode & 0o700) >> 6],
+    perms[(adjustedMode & 0o070) >> 3],
+    perms[adjustedMode & 0o007]
   ].join('');
 }
 
@@ -137,21 +144,27 @@ const colors = {
   regular: '\x1b[0m'
 };
 
-function getFileTypeIndicator(stats) {
+function getFileTypeIndicator(stats, filename = '') {
   if (stats.isDirectory()) return '/';
   if (stats.isSymbolicLink()) return '@';
   if (stats.isSocket()) return '=';
   if (stats.isFIFO()) return '|';
-  if (stats.mode & 0o111) return '*';
+  if (stats.mode & 0o111 || isExecutableByExtension(filename)) return '*';
   return '';
 }
 
-function getFileColor(stats) {
+function isExecutableByExtension(filename) {
+  const executableExtensions = ['.exe', '.cmd', '.bat', '.ps1', '.com', '.scr', '.msi'];
+  const lowerFilename = filename.toLowerCase();
+  return executableExtensions.some(ext => lowerFilename.endsWith(ext));
+}
+
+function getFileColor(stats, filename = '') {
   if (stats.isDirectory()) return colors.directory;
   if (stats.isSymbolicLink()) return colors.symlink;
   if (stats.isSocket()) return colors.socket;
   if (stats.isFIFO()) return colors.fifo;
-  if (stats.mode & 0o111) return colors.executable;
+  if (stats.mode & 0o111 || isExecutableByExtension(filename)) return colors.executable;
   return colors.regular;
 }
 
@@ -166,6 +179,42 @@ function parseDefaultOptions() {
   if (!envOptions) return [];
   
   return envOptions.split(/\s+/).filter(opt => opt.length > 0);
+}
+
+function formatInColumns(items, terminalWidth = 80) {
+  if (items.length === 0) return '';
+  
+  // Calculate the maximum display width (accounting for ANSI codes)
+  const getDisplayWidth = (str) => {
+    return str.replace(/\x1b\[[0-9;]*m/g, '').length;
+  };
+  
+  const maxWidth = Math.max(...items.map(getDisplayWidth));
+  const columnWidth = maxWidth + 2; // Add padding
+  const numColumns = Math.max(1, Math.floor(terminalWidth / columnWidth));
+  
+  if (numColumns === 1) {
+    return items.join('\n');
+  }
+  
+  const numRows = Math.ceil(items.length / numColumns);
+  const result = [];
+  
+  for (let row = 0; row < numRows; row++) {
+    const line = [];
+    for (let col = 0; col < numColumns; col++) {
+      const index = row + col * numRows;
+      if (index < items.length) {
+        const item = items[index];
+        const displayWidth = getDisplayWidth(item);
+        const padding = ' '.repeat(Math.max(0, columnWidth - displayWidth));
+        line.push(item + padding);
+      }
+    }
+    result.push(line.join('').trimEnd());
+  }
+  
+  return result.join('\n');
 }
 
 async function listDirectory(directory, opts) {
@@ -197,13 +246,13 @@ async function listDirectory(directory, opts) {
     if (opts.long) {
       for (const item of sortedItems) {
         const { name, stats } = item;
-        const perms = formatPermissions(stats.mode);
+        const perms = formatPermissions(stats.mode, name);
         const size = formatSize(stats.size, opts['human-readable']);
         const date = formatDate(stats.mtime);
-        const indicator = opts.classify ? getFileTypeIndicator(stats) : '';
+        const indicator = opts.classify ? getFileTypeIndicator(stats, name) : '';
         
         if (useColor) {
-          const color = getFileColor(stats);
+          const color = getFileColor(stats, name);
           console.log(`${perms} ${size.padStart(8)} ${date} ${color}${name}${indicator}${colors.reset}`);
         } else {
           console.log(`${perms} ${size.padStart(8)} ${date} ${name}${indicator}`);
@@ -211,14 +260,17 @@ async function listDirectory(directory, opts) {
       }
     } else {
       const names = sortedItems.map(item => {
-        const indicator = opts.classify ? getFileTypeIndicator(item.stats) : '';
+        const indicator = opts.classify ? getFileTypeIndicator(item.stats, item.name) : '';
         if (useColor) {
-          const color = getFileColor(item.stats);
+          const color = getFileColor(item.stats, item.name);
           return `${color}${item.name}${indicator}${colors.reset}`;
         }
         return item.name + indicator;
       });
-      console.log(names.join('  '));
+      
+      const terminalWidth = process.stdout.columns || 80;
+      const columnOutput = formatInColumns(names, terminalWidth);
+      console.log(columnOutput);
     }
   } catch (err) {
     console.error(`ls: cannot access '${directory}': ${err.message}`);
@@ -231,11 +283,18 @@ async function main() {
     const defaultOptions = parseDefaultOptions();
     const allArgs = [...defaultOptions, ...process.argv.slice(2)];
     
+    // Debug: log what we're parsing
+    // console.log('Default options:', defaultOptions);
+    // console.log('All args:', allArgs);
+    
     const { values: opts, positionals } = parseArgs({
       args: allArgs,
       options,
       allowPositionals: true
     });
+    
+    // Debug: log parsed options
+    // console.log('Parsed opts:', opts);
 
     if (opts.help) {
       showHelp();

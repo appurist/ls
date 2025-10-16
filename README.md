@@ -9,7 +9,7 @@ A cross-platform implementation of the UNIX `ls` command built with Bun.
 - Hidden file support
 - Sorting by name, size, or modification time (with reverse option)
 - Human-readable file sizes
-- Colorized output with file type indicators
+- Colorized output with file type indicators (including Windows executable detection)
 - Environment variable support for default options
 - Cross-platform compatibility (Windows executable included)
 - Error handling for inaccessible files/directories
@@ -106,13 +106,15 @@ export LS_OPTIONS="-F --color=always"
 
 ### Basic Listing
 ```
-ls.exe  ls.js
+ls.exe*  ls.js  package.json  README.md
 ```
 
 ### Long Format (`-l`)
 ```
--rw-rw-rw-     114M 10/16/2025 04:27 PM ls.exe
--rw-rw-rw-       3K 10/16/2025 04:19 PM ls.js
+-rwxrwxrwx 119631960 10/16/2025 05:24 PM ls.exe*
+-rw-rw-rw-     9457 10/16/2025 05:24 PM ls.js
+-rw-rw-rw-     1197 10/16/2025 05:05 PM package.json
+-rw-rw-rw-     3799 10/16/2025 05:05 PM README.md
 ```
 
 The long format shows:
@@ -144,6 +146,29 @@ Sizes are displayed in human-readable format:
 - K: Kilobytes (1024 bytes)
 - M: Megabytes (1024 KB)
 - G: Gigabytes (1024 MB)
+- T: Terabytes (1024 GB)
+
+## Colors and File Type Indicators
+
+### Color Scheme
+- **Blue**: Directories
+- **Green**: Executable files (Unix permissions or Windows extensions)
+- **Cyan**: Symbolic links
+- **Magenta**: Sockets
+- **Yellow**: FIFOs/Named pipes
+
+### File Type Indicators (`-F` option)
+- `/` : Directories
+- `*` : Executable files
+- `@` : Symbolic links
+- `=` : Sockets
+- `|` : FIFOs/Named pipes
+
+### Windows Executable Detection
+The tool automatically detects Windows executable files by extension and treats them as executables:
+- `.exe`, `.cmd`, `.bat`, `.ps1`, `.com`, `.scr`, `.msi`
+- Shows in **green color** and with `*` indicator
+- Displays with execute permissions (`rwx`) in long format
 
 ## Error Handling
 

@@ -4,7 +4,8 @@
       "Bash(bun:*)",
       "Bash(ls:*)",
       "Bash(ls.exe:*)",
-      "Bash(./ls.exe:*)"
+      "Bash(./ls.exe:*)",
+      "Bash(LS_OPTIONS=\"-F --color=always\" ./ls.exe -a)"
     ],
     "deny": [],
     "ask": []
