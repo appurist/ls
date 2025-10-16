@@ -102,7 +102,7 @@ function formatSize(size, humanReadable = false) {
     return size.toString();
   }
   
-  if (size < 1024) return size.toString();
+  if (size < 1024) return size.toString() + ' ';  // Add space for byte alignment
   if (size < 1024 * 1024) return `${Math.round(size / 1024)}K`;
   if (size < 1024 * 1024 * 1024) return `${Math.round(size / (1024 * 1024))}M`;
   if (size < 1024 * 1024 * 1024 * 1024) return `${Math.round(size / (1024 * 1024 * 1024))}G`;
@@ -253,9 +253,9 @@ async function listDirectory(directory, opts) {
         
         if (useColor) {
           const color = getFileColor(stats, name);
-          console.log(`${perms} ${size.padStart(8)} ${date} ${color}${name}${indicator}${colors.reset}`);
+          console.log(`${perms} ${size.padStart(10)} ${date} ${color}${name}${indicator}${colors.reset}`);
         } else {
-          console.log(`${perms} ${size.padStart(8)} ${date} ${name}${indicator}`);
+          console.log(`${perms} ${size.padStart(10)} ${date} ${name}${indicator}`);
         }
       }
     } else {
