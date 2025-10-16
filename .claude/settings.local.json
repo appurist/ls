@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun:*)",
+      "Bash(ls:*)",
+      "Bash(ls.exe:*)",
+      "Bash(./ls.exe:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
