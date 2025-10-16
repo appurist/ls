@@ -24,9 +24,28 @@ const options = {
     type: 'string',
     default: 'auto'
   },
-  help: {
+  size: {
+    type: 'boolean',
+    short: 'S',
+    default: false
+  },
+  time: {
+    type: 'boolean',
+    short: 't',
+    default: false
+  },
+  reverse: {
+    type: 'boolean',
+    short: 'r',
+    default: false
+  },
+  'human-readable': {
     type: 'boolean',
     short: 'h',
+    default: false
+  },
+  help: {
+    type: 'boolean',
     default: false
   }
 };
@@ -35,11 +54,15 @@ function showHelp() {
   console.log(`Usage: ls [OPTIONS] [DIRECTORY]
 
 Options:
-  -l, --long        Use long listing format
-  -a, --all         Show hidden files (starting with .)
-  -F, --classify    Append indicator (one of */=>@|) to entries
-      --color[=WHEN] Colorize output; WHEN can be 'always', 'auto', or 'never'
-  -h, --help        Show this help message
+  -l, --long              Use long listing format
+  -a, --all               Show hidden files (starting with .)
+  -F, --classify          Append indicator (one of */=>@|) to entries
+      --color[=WHEN]      Colorize output; WHEN can be 'always', 'auto', or 'never'
+  -S, --size              Sort by file size, largest first
+  -t, --time              Sort by modification time, newest first
+  -r, --reverse           Reverse order while sorting
+  -h, --human-readable    Show sizes in human readable format (1K, 234M, 2G)
+      --help              Show this help message
 
 Environment:
   LS_OPTIONS        Default options (e.g., 'LS_OPTIONS=-F --color=always')
@@ -50,6 +73,10 @@ Examples:
   ls -a        Show all files including hidden
   ls -F        Show file type indicators
   ls -la       Long format with hidden files
+  ls -lS       Long format sorted by size
+  ls -lt       Long format sorted by time
+  ls -ltr      Long format sorted by time, oldest first
+  ls -lh       Long format with human-readable sizes
   ls /path     List files in specified directory`);
 }
 
@@ -63,11 +90,34 @@ function formatPermissions(mode) {
   ].join('');
 }
 
-function formatSize(size) {
+function formatSize(size, humanReadable = false) {
+  if (!humanReadable) {
+    return size.toString();
+  }
+  
   if (size < 1024) return size.toString();
   if (size < 1024 * 1024) return `${Math.round(size / 1024)}K`;
   if (size < 1024 * 1024 * 1024) return `${Math.round(size / (1024 * 1024))}M`;
-  return `${Math.round(size / (1024 * 1024 * 1024))}G`;
+  if (size < 1024 * 1024 * 1024 * 1024) return `${Math.round(size / (1024 * 1024 * 1024))}G`;
+  return `${Math.round(size / (1024 * 1024 * 1024 * 1024))}T`;
+}
+
+function sortItems(items, opts) {
+  let sortedItems = [...items];
+  
+  if (opts.size) {
+    sortedItems.sort((a, b) => b.stats.size - a.stats.size);
+  } else if (opts.time) {
+    sortedItems.sort((a, b) => b.stats.mtime.getTime() - a.stats.mtime.getTime());
+  } else {
+    sortedItems.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  
+  if (opts.reverse) {
+    sortedItems.reverse();
+  }
+  
+  return sortedItems;
 }
 
 function formatDate(date) {
@@ -141,15 +191,14 @@ async function listDirectory(directory, opts) {
       items.push({ name: entry, stats, fullPath });
     }
 
-    items.sort((a, b) => a.name.localeCompare(b.name));
-
+    const sortedItems = sortItems(items, opts);
     const useColor = shouldUseColor(opts.color);
     
     if (opts.long) {
-      for (const item of items) {
+      for (const item of sortedItems) {
         const { name, stats } = item;
         const perms = formatPermissions(stats.mode);
-        const size = formatSize(stats.size);
+        const size = formatSize(stats.size, opts['human-readable']);
         const date = formatDate(stats.mtime);
         const indicator = opts.classify ? getFileTypeIndicator(stats) : '';
         
@@ -161,7 +210,7 @@ async function listDirectory(directory, opts) {
         }
       }
     } else {
-      const names = items.map(item => {
+      const names = sortedItems.map(item => {
         const indicator = opts.classify ? getFileTypeIndicator(item.stats) : '';
         if (useColor) {
           const color = getFileColor(item.stats);
