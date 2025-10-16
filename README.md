@@ -7,6 +7,10 @@ A cross-platform implementation of the UNIX `ls` command built with Bun.
 - Basic directory listing
 - Long format display with file permissions, size, and timestamps
 - Hidden file support
+- Sorting by name, size, or modification time (with reverse option)
+- Human-readable file sizes
+- Colorized output with file type indicators
+- Environment variable support for default options
 - Cross-platform compatibility (Windows executable included)
 - Error handling for inaccessible files/directories
 
@@ -18,16 +22,16 @@ A cross-platform implementation of the UNIX `ls` command built with Bun.
 ### Build from Source
 ```bash
 # Build for current platform (Windows)
-bun build
+bun run build
 
 # Build for specific platforms
-bun build:win     # Windows (ls.exe)
-bun build:mac     # macOS (ls)
-bun build:linux   # Linux (ls)
-bun build:all     # All platforms
+bun run build:win     # Windows (ls.exe)
+bun run build:mac     # macOS (ls)
+bun run build:linux   # Linux (ls)
+bun run build:all     # All platforms
 
 # Clean built files
-bun clean
+bun run clean
 ```
 
 ## Usage
@@ -43,12 +47,24 @@ ls [OPTIONS] [DIRECTORY]
 |--------|-------------|
 | `-l, --long` | Use long listing format |
 | `-a, --all` | Show hidden files (starting with .) |
-| `-h, --help` | Show help message |
+| `-F, --classify` | Append indicator (one of */=>@\|) to entries |
+| `--color[=WHEN]` | Colorize output; WHEN can be 'always', 'auto', or 'never' |
+| `-S, --size` | Sort by file size, largest first |
+| `-t, --time` | Sort by modification time, newest first |
+| `-r, --reverse` | Reverse order while sorting |
+| `-h, --human-readable` | Show sizes in human readable format (1K, 234M, 2G) |
+| `--help` | Show help message |
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `LS_OPTIONS` | Default options to apply (e.g., `LS_OPTIONS="-F --color=always"`) |
 
 ### Examples
 
 ```bash
-# List files in current directory
+# List files in current directory (auto-enables -F and color)
 ./ls.exe
 
 # Long format listing
@@ -60,11 +76,30 @@ ls [OPTIONS] [DIRECTORY]
 # Long format with hidden files
 ./ls.exe -la
 
+# Sort by size, largest first
+./ls.exe -lS
+
+# Sort by time, newest first
+./ls.exe -lt
+
+# Sort by time, oldest first (reverse)
+./ls.exe -ltr
+
+# Human-readable sizes
+./ls.exe -lh
+
+# Disable colors
+./ls.exe --color=never
+
+# Set default options via environment
+export LS_OPTIONS="-F --color=always"
+./ls.exe
+
 # List files in specific directory
 ./ls.exe /path/to/directory
 
 # Show help
-./ls.exe -h
+./ls.exe --help
 ```
 
 ## Output Format

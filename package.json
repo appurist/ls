@@ -4,6 +4,16 @@
   "description": "A cross-platform UNIX-like ls command implementation built with Bun",
   "main": "ls.js",
   "type": "module",
+  "author": "Paul Whittemore <dev@appurist.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/appurist/ls.git"
+  },
+  "homepage": "https://github.com/appurist/ls",
+  "bugs": {
+    "url": "https://github.com/appurist/ls/issues"
+  },
   "scripts": {
     "build": "npm run build:win",
     "build:win": "bun build --compile --target=bun-windows-x64 --outfile=ls.exe ls.js",
@@ -22,8 +32,6 @@
     "cli",
     "bun"
   ],
-  "author": "Your Name",
-  "license": "MIT",
   "engines": {
     "bun": ">=1.0.0"
   },
