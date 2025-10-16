@@ -13,12 +13,21 @@ A cross-platform implementation of the UNIX `ls` command built with Bun.
 ## Installation
 
 ### Prerequisites
-- [Bun](https://bun.sh/) runtime
+- [Bun](https://bun.sh/) runtime (version 1.3 or later)
 
 ### Build from Source
 ```bash
-# Clone or download the files
-bun build --compile --outfile=ls.exe ls.js
+# Build for current platform (Windows)
+bun build
+
+# Build for specific platforms
+bun build:win     # Windows (ls.exe)
+bun build:mac     # macOS (ls)
+bun build:linux   # Linux (ls)
+bun build:all     # All platforms
+
+# Clean built files
+bun clean
 ```
 
 ## Usage
